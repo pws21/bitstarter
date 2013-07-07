@@ -1,10 +1,11 @@
 var express = require('express');
-var fs = require('fs')
+var fs = require('fs');
 var app = express.createServer(express.logger());
 
 app.get('/', function(request, response) {
-  f = fs.readFile('index.html');
-  response.send(f.toString("utf-8"));
+  var f = fs.readFileSync('index.html', 'utf-8');
+  response.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
+  response.send(f);
 });
 
 var port = process.env.PORT || 5000;
