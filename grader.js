@@ -22,6 +22,8 @@ References:
 */
 
 var fs = require('fs');
+var util = require('util');
+var rest =  require('restler');
 var program = require('commander');
 var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
@@ -61,14 +63,40 @@ var clone = function(fn) {
     return fn.bind({});
 };
 
+var processURL = function(checks) {
+  var inner = function(result, response) {
+    if (result instanceof Error) {
+      console.error('error on get url:' + util.format(response.message));
+    }
+    else {
+      fs.writeFileSync("fromurl.tmp", result);
+      checkAndOut("fromurl.tmp", checks);
+    }
+  }
+  return inner;
+}
+
+var checkAndOut = function(file, checks) {
+  var checkJson = checkHtmlFile(file, checks);
+  var outJson = JSON.stringify(checkJson, null, 4);
+  console.log(outJson);
+
+}
+
 if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+        .option('-u, --url <url>', 'URL to HTML page')
         .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+    if (program.url) {
+      //console.log("URL given");
+      var fn = processURL(program.checks);
+      rest.get(program.url).on("complete", fn);
+    }
+    else {
+      checkAndOut(program.file, program.checks);
+    }
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
